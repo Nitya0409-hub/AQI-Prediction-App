@@ -3,6 +3,7 @@ import pandas as pd
 import joblib
 import os
 
+# ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="AQI Prediction System",
     page_icon="🌫️",
@@ -10,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ---------- Load Model ----------
+# ── Load model ────────────────────────────────────────────────────────────────
 @st.cache_resource
 def load_model():
     if not os.path.exists("aqi_model.pkl"):
@@ -20,14 +21,12 @@ def load_model():
 
 model = load_model()
 
-# ---------- Sidebar ----------
+# ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Above_the_Clouds.jpg/320px-Above_the_Clouds.jpg", use_container_width=True)
-    st.title("ℹ️ About")
+    st.title("🌫️ AQI Prediction")
+    st.markdown("---")
     st.markdown("""
-    This app predicts the **Air Quality Index (AQI)** based on pollutant concentrations.
-
-    **AQI Categories:**
+    ### AQI Categories
     | Range | Category |
     |-------|----------|
     | 0–50 | 🟢 Good |
@@ -36,18 +35,16 @@ with st.sidebar:
     | 201–300 | 🔴 Poor |
     | 301–400 | 🟣 Very Poor |
     | 400+ | ⚫ Severe |
-
-    **Data Source:** CPCB India (city_day.csv)
     """)
     st.markdown("---")
-    st.caption("Built with Streamlit & Scikit-learn")
+    st.caption("Dataset: AQI_SMALL_5000.csv (CPCB India)")
 
-# ---------- Header ----------
+# ── Header ────────────────────────────────────────────────────────────────────
 st.title("🌫️ Air Quality Index Prediction System")
-st.markdown("Enter pollutant concentrations below to predict the AQI for a location.")
+st.markdown("Enter pollutant concentrations below to predict the AQI.")
 st.markdown("---")
 
-# ---------- Input Form ----------
+# ── Input Form (3 columns) ────────────────────────────────────────────────────
 st.subheader("📥 Enter Pollutant Values")
 
 col1, col2, col3 = st.columns(3)
@@ -72,16 +69,11 @@ with col3:
 
 st.markdown("---")
 
-# ---------- Predict ----------
-col_btn1, col_btn2 = st.columns([1, 5])
-with col_btn1:
-    predict_clicked = st.button("🔍 Predict AQI", use_container_width=True)
-with col_btn2:
-    if st.button("🔄 Reset", use_container_width=False):
-        st.rerun()
+# ── Predict ───────────────────────────────────────────────────────────────────
+predict_clicked = st.button("🔍 Predict AQI", use_container_width=False)
 
 if predict_clicked:
-    input_data = pd.DataFrame({
+    data = pd.DataFrame({
         'PM2.5':   [pm25],
         'PM10':    [pm10],
         'NO':      [no],
@@ -96,21 +88,27 @@ if predict_clicked:
         'Xylene':  [xylene]
     })
 
-    prediction = model.predict(input_data)[0]
+    prediction = model.predict(data)[0]
 
-    # AQI Category & Color
+    # Category + color + advice
     if prediction <= 50:
-        category, color, emoji = "Good",      "#2ecc71", "🟢"
+        category, color, emoji = "Good",         "#2ecc71", "🟢"
+        advice = "Air quality is excellent. No health precautions needed."
     elif prediction <= 100:
         category, color, emoji = "Satisfactory", "#f1c40f", "🟡"
+        advice = "Acceptable air quality. Sensitive individuals should limit prolonged outdoor activity."
     elif prediction <= 200:
-        category, color, emoji = "Moderate",  "#e67e22", "🟠"
+        category, color, emoji = "Moderate",     "#e67e22", "🟠"
+        advice = "Breathing discomfort for asthma patients. Consider wearing a mask outdoors."
     elif prediction <= 300:
-        category, color, emoji = "Poor",      "#e74c3c", "🔴"
+        category, color, emoji = "Poor",         "#e74c3c", "🔴"
+        advice = "Breathing discomfort for most people. Avoid outdoor activity if possible."
     elif prediction <= 400:
-        category, color, emoji = "Very Poor", "#8e44ad", "🟣"
+        category, color, emoji = "Very Poor",    "#8e44ad", "🟣"
+        advice = "Risk of respiratory illness on prolonged exposure. Stay indoors."
     else:
-        category, color, emoji = "Severe",    "#2c3e50", "⚫"
+        category, color, emoji = "Severe",       "#2c3e50", "⚫"
+        advice = "Emergency conditions. Do NOT go outside."
 
     st.markdown("---")
     st.subheader("📊 Prediction Result")
@@ -120,28 +118,19 @@ if predict_clicked:
     with res_col1:
         st.markdown(f"""
         <div style="
-            background-color: {color}22;
+            background-color:{color}22;
             border-left: 6px solid {color};
-            border-radius: 8px;
-            padding: 24px;
+            border-radius: 10px;
+            padding: 28px;
             text-align: center;
         ">
-            <h1 style="color:{color}; font-size:64px; margin:0;">{prediction:.1f}</h1>
-            <p style="font-size:18px; margin:4px 0;">Predicted AQI</p>
-            <h3 style="color:{color};">{emoji} {category}</h3>
+            <h1 style="color:{color}; font-size:72px; margin:0;">{prediction:.1f}</h1>
+            <p style="font-size:18px; margin:4px 0; color:gray;">Predicted AQI</p>
+            <h3 style="color:{color}; margin-top:8px;">{emoji} {category}</h3>
         </div>
         """, unsafe_allow_html=True)
 
     with res_col2:
-        # Health advice per category
-        advice = {
-            "Good":        "Air quality is excellent. No precautions needed. ✅",
-            "Satisfactory":"Air quality is acceptable. Sensitive individuals should limit prolonged outdoor activity.",
-            "Moderate":    "Members of sensitive groups may experience health effects. Wear a mask outdoors. 😷",
-            "Poor":        "Everyone may begin to experience health effects. Avoid outdoor activity if possible. ⚠️",
-            "Very Poor":   "Health alert: Serious health effects for everyone. Stay indoors. 🚨",
-            "Severe":      "Emergency conditions. Entire population is likely to be affected. Do NOT go outside. ☠️",
-        }
-        st.info(f"**Health Advisory:** {advice[category]}")
+        st.info(f"**🏥 Health Advisory:** {advice}")
         st.markdown("**Your Input Summary:**")
-        st.dataframe(input_data.T.rename(columns={0: "Value"}), use_container_width=True)
+        st.dataframe(data.T.rename(columns={0: "Value"}), use_container_width=True)
